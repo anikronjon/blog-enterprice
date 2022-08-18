@@ -1,8 +1,8 @@
 from django.http import Http404
 from django.shortcuts import render, get_object_or_404
-from django.views.generic import ListView
+from django.views.generic import ListView, DetailView
 from django.core.mail import send_mail
-
+from taggit.models import Tag
 from .forms import EmailPostForm
 from .models import Post
 
@@ -22,6 +22,10 @@ class PostListView(ListView):
             return super(PostListView, self).paginate_queryset(queryset, page_size)
 
 
+class TagView(DetailView):
+    model = Tag
+    context_object_name = 'tags'
+    template_name = 'blog/post/post_detail.html'
 def post_detail_view(request, year, month, day, post):
     post = get_object_or_404(Post, published__year=year, published__month=month, published__day=day, slug=post, status=Post.Status.PUBLISH)
     context = {
@@ -49,3 +53,5 @@ def post_share(request, post_id):
     else:
         form = EmailPostForm()
     return render(request, 'blog/post/share.html', {'post': post, 'form': form, 'sent': sent})
+
+
