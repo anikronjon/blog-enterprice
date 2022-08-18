@@ -1,36 +1,30 @@
+from django.http import Http404
 from django.shortcuts import render, get_object_or_404
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.views.generic import ListView
+
 from .models import Post
 
 
 # Create your views here.
-def post_list_view(request):
-    post_list = Post.publish.all()
-    paginator = Paginator(post_list, 10)
-    page_number = request.GET.get('page')
-    try:
-        posts = paginator.page(page_number)
-    except EmptyPage:
-        posts = paginator.page(paginator.num_pages)
-    except PageNotAnInteger:
-        posts = paginator.page(1)
+class PostListView(ListView):
+    queryset = Post.publish.select_related('author').all()
+    context_object_name = 'posts'
+    paginate_by = 10
+    template_name = 'blog/post/post_list.html'
 
-    context = {
-        'posts': posts
-    }
-    return render(request, 'blog/post/post_list.html', context)
+    def paginate_queryset(self, queryset, page_size):
+        try:
+            return super(PostListView, self).paginate_queryset(queryset, page_size)
+        except Http404:
+            self.kwargs['page'] = 1
+            return super(PostListView, self).paginate_queryset(queryset, page_size)
+
+
 
 
 def post_detail_view(request, year, month, day, post):
-    post = get_object_or_404(
-        Post,
-        status=Post.Status.PUBLISH,
-        slug=post,
-        published__year=year,
-        published__month=month,
-        published__day=day
-
-    )
+    post = get_object_or_404(Post, published__year=year, published__month=month, published__day=day, slug=post, status=Post.Status.PUBLISH)
     context = {
         'post': post
     }
